@@ -39,7 +39,6 @@
     text-align:center;
     color:var(--text);
     margin:0 0 10px;
-    /* scales between ~26px and ~40px */
     font-size: clamp(1.625rem, 2.5vw + 1rem, 2.5rem);
     line-height:1.15;
   }
@@ -52,52 +51,39 @@
     font-weight:500;
   }
 
+  /* Viewer auto-sizes: height set dynamically via JS */
   .image-wrapper {
     position:relative;
     width:100%;
-    /* Desktop/tablet: roomy; Mobile: use viewport height smartly */
-    min-height: 420px;
+    height:auto;            /* JS will set explicit height after image load */
+    background:#f5f5f5;
     border-radius:15px;
     margin-bottom: clamp(18px, 2.5vw, 25px);
-    background:#f5f5f5;
     display:flex; justify-content:center; align-items:center;
     overflow:hidden;
-    box-shadow:0 10px 30px rgba(0,0,0,.1);
-  }
-
-  /* Modern mobile browsers: small-viewport units avoid URL-bar jump */
-  @supports (height: 100svh) {
-    .image-wrapper { min-height: min(58svh, 520px); }
-  }
-  @supports not (height: 100svh) {
-    .image-wrapper { min-height: min(60vh, 520px); }
+    transition: height .28s ease;  /* smooth resize */
   }
 
   .quote-image {
+    width:100%;
+    height:100%;
     max-width:100%;
-    /* Keep image inside the visible viewport nicely */
-    max-height: 70vh;
-    object-fit:contain;
+    object-fit:contain;     /* never crop or distort */
     border-radius:15px;
     display:none;
-    animation:fadeIn .5s ease-in;
+    animation:fadeIn .35s ease-in;
   }
-  @supports (height: 100svh) {
-    .quote-image { max-height: 72svh; }
-  }
-
   .quote-image.active { display:block; }
 
   @keyframes fadeIn { from{ opacity:0; transform:scale(.98);} to{ opacity:1; transform:scale(1);} }
-  @media (prefers-reduced-motion: reduce){
-    .quote-image { animation:none !important; }
-  }
+  @media (prefers-reduced-motion: reduce){ .quote-image { animation:none !important; } }
 
   .placeholder {
     color:var(--muted-2);
     font-size: clamp(1rem, 1vw + 0.9rem, 1.3rem);
     text-align:center;
     padding: clamp(24px, 3vw, 40px);
+    width:100%;
   }
   .placeholder.hidden { display:none; }
 
@@ -131,25 +117,19 @@
     padding-top:18px; border-top:1px solid #e0e0e0; margin-top:20px;
   }
 
-  /* ======= Mobile-first tweaks ======= */
+  /* Mobile-first tweaks */
   @media (max-width: 768px){
     :root{ --pad:24px; --radius:16px; }
     body { padding:16px; }
     .container { padding:var(--pad); border-radius:var(--radius); }
-    .image-wrapper { border-radius:14px; }
-    .quote-image { border-radius:14px; }
-    .btn-row { padding:2px 0; }
+    .image-wrapper, .quote-image { border-radius:14px; }
   }
-
   @media (max-width: 480px){
     body { padding:12px; }
     .container { padding:18px; }
-    .image-wrapper { margin-bottom:18px; }
     .btn-row { display:block; }
     button { width:100%; }
   }
-
-  /* Ultra-small screens */
   @media (max-width: 360px){
     .container { padding:14px; }
     .spinner { width:38px; height:38px; }
@@ -161,7 +141,7 @@
     <h1>✨ Get A Quote</h1>
     <p class="quote-count">Total Quotes: <strong id="totalCount">0</strong></p>
 
-    <div class="image-wrapper">
+    <div class="image-wrapper" id="viewer">
       <div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div></div>
       <div class="placeholder" id="placeholder">Tap the button to see an inspiring quote! 🎯</div>
       <img class="quote-image" id="quoteImage" alt="Quote">
@@ -181,6 +161,7 @@
   const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
   // Elements
+  const viewer = document.getElementById('viewer');
   const placeholder = document.getElementById('placeholder');
   const quoteImage = document.getElementById('quoteImage');
   const loadingOverlay = document.getElementById('loadingOverlay');
@@ -189,6 +170,7 @@
 
   let QUOTE_IMAGES = [];
   let currentIndex = -1;
+  let lastNatural = { w: 0, h: 0 }; // remember last image natural size for responsive recalcs
 
   const showLoading = (on) => loadingOverlay.classList.toggle('hidden', !on);
 
@@ -213,6 +195,26 @@
     return json;
   }
 
+  // Resize viewer to match current image aspect ratio and viewport limits
+  function resizeViewerToImage() {
+    if (!lastNatural.w || !lastNatural.h) return; // no image yet
+    const ratio = lastNatural.h / lastNatural.w;
+    const w = viewer.clientWidth || viewer.offsetWidth || 0;
+    // Keep some breathing room from viewport edges
+    const maxH = Math.max(240, window.innerHeight - 160);
+    const targetH = Math.min(w * ratio, maxH);
+    viewer.style.height = `${Math.round(targetH)}px`;
+  }
+
+  function showImage(src, naturalW, naturalH, altText) {
+    lastNatural = { w: naturalW, h: naturalH };
+    resizeViewerToImage();
+
+    quoteImage.src = src;
+    quoteImage.alt = altText || "Quote";
+    quoteImage.classList.add('active');
+  }
+
   function getRandomQuote() {
     if (!QUOTE_IMAGES.length) return;
 
@@ -228,15 +230,15 @@
     const src = QUOTE_IMAGES[i];
     const img = new Image();
     img.onload = () => {
-      quoteImage.src = src;
-      quoteImage.alt = `Quote ${i+1}`;
-      quoteImage.classList.add('active');
       showLoading(false);
+      showImage(src, img.naturalWidth || img.width, img.naturalHeight || img.height, `Quote ${i+1}`);
     };
     img.onerror = () => {
       showLoading(false);
       placeholder.textContent = "Could not load. Ensure Drive folder & files are public.";
       placeholder.classList.remove('hidden');
+      // collapse viewer gracefully if error
+      viewer.style.height = '';
     };
     img.src = src;
   }
@@ -248,11 +250,17 @@
     totalCountEl.textContent = QUOTE_IMAGES.length;
     quoteBtn.disabled = !QUOTE_IMAGES.length;
     showLoading(false);
+    // Start with a gentle placeholder height so layout isn't jumpy before first image
+    viewer.style.height = '48vh';
   }
+
+  // Recalculate on viewport/orientation changes
+  window.addEventListener('resize', resizeViewerToImage);
+  window.addEventListener('orientationchange', () => setTimeout(resizeViewerToImage, 120));
 
   window.addEventListener('load', () => {
     quoteBtn.addEventListener('click', getRandomQuote);
-    init(); // auto load list on start
+    init();
   });
 </script>
 </body>
