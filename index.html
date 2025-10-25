@@ -1,356 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Get A Quote</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 900px;
-            width: 100%;
-        }
-
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-        }
-
-        .quote-count {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1.1em;
-            font-weight: 500;
-        }
-
-        .image-wrapper {
-            position: relative;
-            width: 100%;
-            min-height: 400px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            background: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .quote-image {
-            max-width: 100%;
-            max-height: 600px;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            border-radius: 15px;
-            display: none;
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        .quote-image.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        .placeholder {
-            color: #999;
-            font-size: 1.3em;
-            text-align: center;
-            padding: 40px;
-        }
-
-        .placeholder.hidden {
-            display: none;
-        }
-
-        .btn-container {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-bottom: 30px;
-        }
-
-        .copyright {
-            text-align: center;
-            color: #666;
-            font-size: 0.9em;
-            padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            font-size: 1.2em;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            font-weight: 600;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s linear infinite;
-            margin-left: 10px;
-        }
-
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 15px;
-            z-index: 2;
-        }
-
-        .loading-overlay.hidden {
-            display: none;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .history-section {
-            margin-top: 30px;
-            padding-top: 30px;
-            border-top: 2px solid #e0e0e0;
-        }
-
-        .history-title {
-            text-align: center;
-            color: #333;
-            font-size: 1.3em;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-
-        .history-container {
-            display: flex;
-            gap: 15px;
-            overflow-x: auto;
-            padding: 10px 0;
-            scrollbar-width: thin;
-            scrollbar-color: #667eea #f0f0f0;
-        }
-
-        .history-container::-webkit-scrollbar {
-            height: 8px;
-        }
-
-        .history-container::-webkit-scrollbar-track {
-            background: #f0f0f0;
-            border-radius: 10px;
-        }
-
-        .history-container::-webkit-scrollbar-thumb {
-            background: #667eea;
-            border-radius: 10px;
-        }
-
-        .history-item {
-            flex-shrink: 0;
-            width: 120px;
-            height: 120px;
-            border-radius: 10px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .history-item:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .history-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .history-empty {
-            text-align: center;
-            color: #999;
-            font-style: italic;
-            padding: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-            }
-
-            h1 {
-                font-size: 2em;
-            }
-
-            .image-wrapper {
-                min-height: 300px;
-            }
-
-            .quote-image {
-                max-height: 400px;
-            }
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Get A Quote</title>
+<style>
+/* --- your existing styles unchanged --- */
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+.container{background:#fff;border-radius:20px;padding:40px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-width:900px;width:100%}
+h1{text-align:center;color:#333;margin-bottom:10px;font-size:2.5em}
+.quote-count{text-align:center;color:#666;margin-bottom:30px;font-size:1.1em;font-weight:500}
+.image-wrapper{position:relative;width:100%;min-height:400px;border-radius:15px;margin-bottom:30px;background:#f5f5f5;display:flex;justify-content:center;align-items:center;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.1)}
+.quote-image{max-width:100%;max-height:600px;width:auto;height:auto;object-fit:contain;border-radius:15px;display:none;animation:fadeIn .5s ease-in}
+.quote-image.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.placeholder{color:#999;font-size:1.3em;text-align:center;padding:40px}
+.placeholder.hidden{display:none}
+.btn-container{display:flex;gap:15px;justify-content:center;margin-bottom:30px}
+.copyright{text-align:center;color:#666;font-size:.9em;padding-top:20px;border-top:1px solid #e0e0e0}
+button{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:15px 40px;font-size:1.2em;border-radius:50px;cursor:pointer;transition:transform .2s,box-shadow .2s;font-weight:600}
+button:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(102,126,234,.4)}
+button:active{transform:translateY(0)}
+.loading-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;justify-content:center;align-items:center;border-radius:15px;z-index:2}
+.loading-overlay.hidden{display:none}
+.spinner{width:50px;height:50px;border:5px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:#fff;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.history-section{margin-top:30px;padding-top:30px;border-top:2px solid #e0e0e0}
+.history-title{text-align:center;color:#333;font-size:1.3em;margin-bottom:20px;font-weight:600}
+.history-container{display:flex;gap:15px;overflow-x:auto;padding:10px 0;scrollbar-width:thin;scrollbar-color:#667eea #f0f0f0}
+.history-container::-webkit-scrollbar{height:8px}
+.history-container::-webkit-scrollbar-track{background:#f0f0f0;border-radius:10px}
+.history-container::-webkit-scrollbar-thumb{background:#667eea;border-radius:10px}
+.history-item{flex-shrink:0;width:120px;height:120px;border-radius:10px;overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 10px rgba(0,0,0,.1)}
+.history-item:hover{transform:scale(1.05);box-shadow:0 6px 15px rgba(102,126,234,.3)}
+.history-item img{width:100%;height:100%;object-fit:cover}
+.history-empty{text-align:center;color:#999;font-style:italic;padding:20px}
+@media (max-width:768px){
+  .container{padding:20px}
+  h1{font-size:2em}
+  .image-wrapper{min-height:300px}
+  .quote-image{max-height:400px}
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>✨ Get A Quote</h1>
-        <p class="quote-count">Total Quotes Available: <strong id="totalCount">0</strong></p>
+  <div class="container">
+    <h1>✨ Get A Quote</h1>
+    <p class="quote-count">Total Quotes Available: <strong id="totalCount">0</strong></p>
 
-        <div class="image-wrapper">
-            <div class="loading-overlay hidden" id="loadingOverlay">
-                <div class="spinner"></div>
-            </div>
-            <div class="placeholder" id="placeholder">Click "Get A Quote" to see an inspiring quote! 🎯</div>
-            <img class="quote-image" id="quoteImage" alt="Quote">
-        </div>
-
-        <div class="btn-container">
-            <button onclick="getRandomQuote()" id="quoteBtn" disabled>Get A Quote</button>
-        </div>
-
-        <div class="history-section">
-            <div class="history-title">📜 Recent Quotes</div>
-            <div class="history-container" id="historyContainer">
-                <div class="history-empty">No quotes viewed yet. Click "Get A Quote" to start!</div>
-            </div>
-        </div>
-
-        <div class="copyright">
-            © Wisdom And Enlightenment Trust
-        </div>
+    <div class="image-wrapper">
+      <div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div></div>
+      <div class="placeholder" id="placeholder">Click "Get A Quote" to see an inspiring quote! 🎯</div>
+      <img class="quote-image" id="quoteImage" alt="Quote">
     </div>
 
-    <script>
-        // Hardcoded Google Drive image links
-        const QUOTE_IMAGES = [
-            'https://lh3.googleusercontent.com/d/13GWFdQ_RiGJfScKPHY8d7U2WXuvz4UX4',
-            'https://lh3.googleusercontent.com/d/1RXIB1f8zRqhqfR0MhpxFRWwyIIq7FyfF',
-            'https://lh3.googleusercontent.com/d/1XQ0IdvXhNSSeNOuxcw5oafguENDKKxE9',
-            'https://lh3.googleusercontent.com/d/1M4r-T73djJELjgAlF_HEG4_0-9iguvx-',
-            'https://lh3.googleusercontent.com/d/1gNeFisMVUIgL6b1JTNoN_k---5WLmmxs',
-            'https://lh3.googleusercontent.com/d/1Ok_JkTJHjJIxQ_4gM5d7aTRxwg44qanD',
-            'https://lh3.googleusercontent.com/d/1mGuXCzK51ldtlbMrZB7PMlbMDxjAOLNR',
-            'https://lh3.googleusercontent.com/d/1aZkOT6ks_xpL0-zKC3XENaMqzBMV2lNS',
-            'https://lh3.googleusercontent.com/d/1xk9x73ake1mkqXoHvdsckPyvmPHFVUY5',
-            'https://lh3.googleusercontent.com/d/1xndbtEH6UeiI8npkkMx77pc2wkiixXJk',
-            'https://lh3.googleusercontent.com/d/12GOetHqSnjz2WLJb3K6jvJ_LGoTSH4Rl',
-            'https://lh3.googleusercontent.com/d/11H6FPQK5IJUdXNiHyTgg-YOFK3IZqBMR',
-            'https://lh3.googleusercontent.com/d/1Ut7CWeJvIgEKKpz1nWJ62PqObT3w7qr4',
-            'https://lh3.googleusercontent.com/d/1EIOK-x_51BS6QcaJZljK-dcWfZSPsMX0',
-            'https://lh3.googleusercontent.com/d/13Tt5cPnk5RasNtvM8xLlql-QqU9xj4L1',
-            'https://lh3.googleusercontent.com/d/1epeVe6E6aL72rtWYb27wARmq-y8MPO8w',
-            'https://lh3.googleusercontent.com/d/11m8slrh9TTkZ9EyOfvv5_R5FoDlKtsk-',
-            'https://lh3.googleusercontent.com/d/15yIt52kDsI1Gj2Uw4VMpHqQvUmy--pVb',
-            'https://lh3.googleusercontent.com/d/1EMD7Q01WKEDuk0FdNH5lZD0bmBtQwTbT',
-            'https://lh3.googleusercontent.com/d/1nz719qXP3yALeegk-jXXk3p-rb8ayj5G',
-            'https://lh3.googleusercontent.com/d/1XoNBtaa9IiGiUPH31qzbMum-4xGdM4jq',
-            'https://lh3.googleusercontent.com/d/1FPc9kac-dvN0rvIrmty2KPyvBa7Ewfjc',
-            'https://lh3.googleusercontent.com/d/1nVpv79S1bViLJ4YjThUMqqBUGDgh3LaU',
-            'https://lh3.googleusercontent.com/d/1iCapMT_nolnA_EVwsIkz3LTiq1RG2ILd',
-            'https://lh3.googleusercontent.com/d/1xGygq0-BpKYcguaorR14m_wUvPFoLWmI',
-            'https://lh3.googleusercontent.com/d/1-tQjSTqqXUNtSZOMF5ZkYE8CIA4Dn3UV'
-        ];
+    <div class="btn-container">
+      <!-- removed disabled -->
+      <button id="quoteBtn">Get A Quote</button>
+    </div>
 
-        let currentIndex = -1;
+    <div class="history-section">
+      <div class="history-title">📜 Recent Quotes</div>
+      <div class="history-container" id="historyContainer">
+        <div class="history-empty">No quotes viewed yet. Click "Get A Quote" to start!</div>
+      </div>
+    </div>
 
-        function getRandomQuote() {
-            const placeholder = document.getElementById('placeholder');
-            const quoteImage = document.getElementById('quoteImage');
-            
-            // Pick completely random index (can repeat)
-            const randomIndex = Math.floor(Math.random() * QUOTE_IMAGES.length);
-            currentIndex = randomIndex;
+    <div class="copyright">© Wisdom And Enlightenment Trust</div>
+  </div>
 
-            // Hide placeholder
-            placeholder.classList.add('hidden');
+<script>
+// If you have Google Drive FILE IDs, keep just the IDs here:
+const DRIVE_FILE_IDS = [
+  '13GWFdQ_RiGJfScKPHY8d7U2WXuvz4UX4',
+  '1RXIB1f8zRqhqfR0MhpxFRWwyIIq7FyfF',
+  '1XQ0IdvXhNSSeNOuxcw5oafguENDKKxE9',
+  '1M4r-T73djJELjgAlF_HEG4_0-9iguvx-',
+  '1gNeFisMVUIgL6b1JTNoN_k---5WLmmxs',
+  '1Ok_JkTJHjJIxQ_4gM5d7aTRxwg44qanD',
+  '1mGuXCzK51ldtlbMrZB7PMlbMDxjAOLNR',
+  '1aZkOT6ks_xpL0-zKC3XENaMqzBMV2lNS',
+  '1xk9x73ake1mkqXoHvdsckPyvmPHFVUY5',
+  '1xndbtEH6UeiI8npkkMx77pc2wkiixXJk',
+  '12GOetHqSnjz2WLJb3K6jvJ_LGoTSH4Rl',
+  '11H6FPQK5IJUdXNiHyTgg-YOFK3IZqBMR',
+  '1Ut7CWeJvIgEKKpz1nWJ62PqObT3w7qr4',
+  '1EIOK-x_51BS6QcaJZljK-dcWfZSPsMX0',
+  '13Tt5cPnk5RasNtvM8xLlql-QqU9xj4L1',
+  '1epeVe6E6aL72rtWYb27wARmq-y8MPO8w',
+  '11m8slrh9TTkZ9EyOfvv5_R5FoDlKtsk-',
+  '15yIt52kDsI1Gj2Uw4VMpHqQvUmy--pVb',
+  '1EMD7Q01WKEDuk0FdNH5lZD0bmBtQwTbT',
+  '1nz719qXP3yALeegk-jXXk3p-rb8ayj5G',
+  '1XoNBtaa9IiGiUPH31qzbMum-4xGdM4jq',
+  '1FPc9kac-dvN0rvIrmty2KPyvBa7Ewfjc',
+  '1nVpv79S1bViLJ4YjThUMqqBUGDgh3LaU',
+  '1iCapMT_nolnA_EVwsIkz3LTiq1RG2ILd',
+  '1xGygq0-BpKYcguaorR14m_wUvPFoLWmI',
+  '1-tQjSTqqXUNtSZOMF5ZkYE8CIA4Dn3UV'
+];
 
-            // Show image with fade animation
-            quoteImage.classList.remove('active');
-            setTimeout(() => {
-                quoteImage.src = QUOTE_IMAGES[currentIndex];
-                quoteImage.classList.add('active');
-            }, 50);
-        }
+// Build a stable, hotlink-friendly URL for public Drive images
+const driveUrl = (id) => `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
 
-        // Preload images for better performance
-        window.addEventListener('load', () => {
-            // Update total count dynamically
-            document.getElementById('totalCount').textContent = QUOTE_IMAGES.length;
-            
-            // Preload images
-            QUOTE_IMAGES.forEach(src => {
-                const img = new Image();
-                img.src = src;
-            });
-        });
-    </script>
+const QUOTE_IMAGES = DRIVE_FILE_IDS.map(driveUrl);
+
+let currentIndex = -1;
+
+const placeholder = document.getElementById('placeholder');
+const quoteImage = document.getElementById('quoteImage');
+const loadingOverlay = document.getElementById('loadingOverlay');
+const totalCountEl = document.getElementById('totalCount');
+const quoteBtn = document.getElementById('quoteBtn');
+
+function showLoading(isLoading){
+  loadingOverlay.classList.toggle('hidden', !isLoading);
+}
+
+function getRandomQuote(){
+  if (!QUOTE_IMAGES.length) return;
+
+  // pick a random index
+  const randomIndex = Math.floor(Math.random() * QUOTE_IMAGES.length);
+  currentIndex = randomIndex;
+
+  placeholder.classList.add('hidden');
+  quoteImage.classList.remove('active');
+
+  showLoading(true);
+
+  // Ensure we handle load/error for a smooth UX
+  const nextSrc = QUOTE_IMAGES[currentIndex];
+  const temp = new Image();
+
+  temp.onload = () => {
+    quoteImage.src = nextSrc;
+    quoteImage.alt = `Quote ${currentIndex + 1}`;
+    quoteImage.classList.add('active');
+    showLoading(false);
+    pushToHistory(nextSrc);
+  };
+  temp.onerror = () => {
+    showLoading(false);
+    placeholder.textContent = 'Could not load image. Please check sharing permissions of the Drive file.';
+    placeholder.classList.remove('hidden');
+  };
+
+  temp.src = nextSrc;
+}
+
+function pushToHistory(src){
+  const history = document.getElementById('historyContainer');
+  const empty = history.querySelector('.history-empty');
+  if (empty) empty.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'history-item';
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = 'Viewed quote';
+  img.addEventListener('click', () => {
+    placeholder.classList.add('hidden');
+    quoteImage.classList.remove('active');
+    showLoading(true);
+    const tmp = new Image();
+    tmp.onload = () => {
+      quoteImage.src = src;
+      quoteImage.classList.add('active');
+      showLoading(false);
+    };
+    tmp.onerror = () => showLoading(false);
+    tmp.src = src;
+  });
+  wrap.appendChild(img);
+  history.prepend(wrap);
+}
+
+// Initialize
+window.addEventListener('load', () => {
+  totalCountEl.textContent = QUOTE_IMAGES.length;
+
+  // Enable the button (this was blocking clicks)
+  quoteBtn.disabled = QUOTE_IMAGES.length === 0;
+
+  // attach handler (avoid inline onclick)
+  quoteBtn.addEventListener('click', getRandomQuote);
+
+  // optional: preload
+  QUOTE_IMAGES.forEach(src => { const img = new Image(); img.src = src; });
+});
+</script>
 </body>
 </html>
