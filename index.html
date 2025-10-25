@@ -104,10 +104,14 @@
   </div>
 
 <script>
+  // === CONFIG ===
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYKfmVEMzFD5LDm0izPYcoI5mXyzKejVX6OCpuSOkPHTaPaL7vMl4E9yYhKU3Qp4j3PQ/exec";
-  const CACHE_KEY = "quotes_from_drive_folder_v1";
+
+  // Bump the cache key to avoid stale shapes
+  const CACHE_KEY = "quotes_from_drive_folder_v2";
   const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
+  // Elements
   const viewer = document.getElementById('viewer');
   const placeholder = document.getElementById('placeholder');
   const quoteImage = document.getElementById('quoteImage');
@@ -115,51 +119,81 @@
   const totalCountEl = document.getElementById('totalCount');
   const quoteBtn = document.getElementById('quoteBtn');
 
-  let QUOTE_IMAGES = [];
+  let ITEMS = [];          // [{id, url}]
   let currentIndex = -1;
   let lastNatural = { w: 0, h: 0 };
 
   const showLoading = (on) => loadingOverlay.classList.toggle('hidden', !on);
 
   // --- helpers ---
-  function normalizeToUrls(arr) {
+  function saveCache(items) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), data: items })); } catch {}
+  }
+  function loadCache() {
+    try {
+      const d = JSON.parse(localStorage.getItem(CACHE_KEY));
+      if (!d || !Array.isArray(d.data)) return null;
+      if (Date.now() - d.at > CACHE_TTL_MS) return null;
+      return d.data;
+    } catch { return null; }
+  }
+
+  function normalizeItems(arr) {
     if (!Array.isArray(arr)) return [];
-    return arr
-      .map(item => {
-        if (typeof item === 'string') return item;
-        if (item && typeof item.url === 'string') return item.url;
-        return null;
-      })
-      .filter(u => typeof u === 'string' && u.startsWith('http'));
+    return arr.map(x => {
+      if (typeof x === 'string') {
+        // If API ever returns strings, try to extract id from ...id=XYZ
+        const m = x.match(/[?&]id=([^&]+)/);
+        return { id: m ? decodeURIComponent(m[1]) : '', url: x };
+      } else if (x && (x.id || x.url)) {
+        return { id: x.id || '', url: x.url || '' };
+      }
+      return null;
+    }).filter(v => v && v.url);
   }
 
-  function saveCache(urls) {
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), data: urls })); } catch {}
-  }
-  function loadCacheRaw() {
-    try { return JSON.parse(localStorage.getItem(CACHE_KEY)); } catch { return null; }
-  }
-  function clearCache() { try { localStorage.removeItem(CACHE_KEY); } catch {} }
+  async function fetchItems() {
+    const cached = loadCache();
+    if (cached) return cached;
 
-  async function fetchImagesFresh() {
     const res = await fetch(APPS_SCRIPT_URL, { cache: 'no-store' });
     if (!res.ok) throw new Error('Apps Script fetch failed: ' + res.status);
     const json = await res.json();
-    const urls = normalizeToUrls(json);
-    if (urls.length) saveCache(urls);
-    return urls;
+    const items = normalizeItems(json);
+    if (items.length) saveCache(items);
+    return items;
   }
 
-  async function fetchImages() {
-    // Try cache first
-    const raw = loadCacheRaw();
-    if (raw && raw.data && (Date.now() - raw.at) <= CACHE_TTL_MS) {
-      const urls = normalizeToUrls(raw.data);
-      if (urls.length) return urls;
-      // cached but malformed -> purge and refetch once
-      clearCache();
+  // Try multiple URL patterns for a file until one loads
+  function candidateUrlsFor(item) {
+    const id = item.id || (item.url.match(/[?&]id=([^&]+)/)?.[1] || '').trim();
+    const urls = [];
+    if (item.url) urls.push(item.url); // given (uc?export=view)
+    if (id) {
+      urls.push(`https://lh3.googleusercontent.com/d/${id}`);                 // very reliable for public images
+      urls.push(`https://drive.google.com/thumbnail?sz=w2000&id=${id}`);     // large thumbnail stream
+      urls.push(`https://drive.google.com/uc?export=download&id=${id}`);     // download endpoint (often works inline)
     }
-    return fetchImagesFresh();
+    // de-dup
+    return Array.from(new Set(urls));
+  }
+
+  function loadWithFallback(item, onSuccess, onFail) {
+    const urls = candidateUrlsFor(item);
+    let k = 0;
+
+    const tryNext = () => {
+      if (k >= urls.length) {
+        onFail?.();
+        return;
+      }
+      const src = urls[k++];
+      const probe = new Image();
+      probe.onload = () => onSuccess(src, probe.naturalWidth || probe.width, probe.naturalHeight || probe.height);
+      probe.onerror = tryNext;
+      probe.src = src;
+    };
+    tryNext();
   }
 
   // viewer sizing
@@ -181,62 +215,52 @@
   }
 
   function getRandomQuote() {
-    if (!QUOTE_IMAGES.length) return;
+    if (!ITEMS.length) return;
 
     let i, guard = 0;
     do {
-      i = Math.floor(Math.random() * QUOTE_IMAGES.length);
+      i = Math.floor(Math.random() * ITEMS.length);
       guard++;
-      if (guard > 20) break; // safety
-    } while (i === currentIndex && QUOTE_IMAGES.length > 1);
+      if (guard > 20) break;
+    } while (i === currentIndex && ITEMS.length > 1);
     currentIndex = i;
 
-    const src = QUOTE_IMAGES[i];
-    if (typeof src !== 'string' || !src.startsWith('http')) {
-      // skip bad entry and try again once
-      QUOTE_IMAGES.splice(i, 1);
-      totalCountEl.textContent = QUOTE_IMAGES.length;
-      if (QUOTE_IMAGES.length) return getRandomQuote();
-      placeholder.textContent = "No valid image URLs found.";
-      placeholder.classList.remove('hidden');
-      return;
-    }
+    const item = ITEMS[i];
 
     placeholder.classList.add('hidden');
     quoteImage.classList.remove('active');
     showLoading(true);
 
-    const img = new Image();
-    img.onload = () => {
-      showLoading(false);
-      showImage(src, img.naturalWidth || img.width, img.naturalHeight || img.height, `Quote ${i+1}`);
-    };
-    img.onerror = () => {
-      showLoading(false);
-      placeholder.textContent = "Could not load this image. It might be private or removed.";
-      placeholder.classList.remove('hidden');
-      // remove broken url from the list so next click works
-      QUOTE_IMAGES.splice(i, 1);
-      totalCountEl.textContent = QUOTE_IMAGES.length;
-    };
-    img.src = src;
+    loadWithFallback(item,
+      (src, w, h) => {
+        showLoading(false);
+        showImage(src, w, h, `Quote ${i+1}`);
+      },
+      () => {
+        showLoading(false);
+        placeholder.textContent = "Could not load this image (403/404). It might be private or removed.";
+        placeholder.classList.remove('hidden');
+        // remove the broken one so the next click works
+        ITEMS.splice(i, 1);
+        totalCountEl.textContent = ITEMS.length;
+      }
+    );
   }
 
   async function init() {
     showLoading(true);
     try {
-      const urls = await fetchImages();
-      QUOTE_IMAGES = urls;
-      totalCountEl.textContent = QUOTE_IMAGES.length;
-      quoteBtn.disabled = !QUOTE_IMAGES.length;
+      ITEMS = await fetchItems();
+      totalCountEl.textContent = ITEMS.length;
+      quoteBtn.disabled = !ITEMS.length;
 
-      // console hint (helps verify first URL quickly)
-      if (QUOTE_IMAGES.length) {
-        console.log('First URL:', QUOTE_IMAGES[0]);
-        viewer.style.height = '48vh'; // initial height; will snap on first load
+      if (ITEMS.length) {
+        // initial placeholder height
+        viewer.style.height = '48vh';
+        console.log('First item:', ITEMS[0]);
       } else {
         viewer.style.height = '260px';
-        placeholder.textContent = 'No images found. Check folder sharing & web app.';
+        placeholder.textContent = 'No images found. Check web app & folder sharing.';
         placeholder.classList.remove('hidden');
       }
     } catch (e) {
