@@ -2,282 +2,224 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Get A Quote</title>
 <style>
   :root{
     --bg1:#667eea; --bg2:#764ba2;
-    --text:#333; --muted:#666; --muted-2:#999; --white:#fff;
-    --radius:20px; --pad:40px;
   }
-  * { box-sizing:border-box; }
-  html,body { height:100%; }
-  body {
-    margin:0; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color:var(--text);
-    background:linear-gradient(135deg,var(--bg1) 0%, var(--bg2) 100%);
-    display:flex; align-items:center; justify-content:center; padding:20px;
-    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; -webkit-tap-highlight-color:transparent;
-    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0));
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;
+    background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 100%);
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px;
   }
-  .container {
-    background:var(--white); border-radius:var(--radius); padding:var(--pad);
-    box-shadow:0 20px 60px rgba(0,0,0,.3); width:100%; max-width:900px;
+  .card{
+    width:min(980px,100%);
+    background:#fff; border-radius:20px; padding:28px;
+    box-shadow:0 18px 60px rgba(0,0,0,.25);
   }
-  h1 { text-align:center; margin:0 0 10px; color:var(--text);
-    font-size: clamp(1.625rem, 2.5vw + 1rem, 2.5rem); line-height:1.15; }
-  .quote-count { text-align:center; color:var(--muted); margin-bottom:20px;
-    font-size: clamp(0.95rem, 0.5vw + 0.8rem, 1.1rem); font-weight:500; }
-
-  /* Viewer height is set dynamically based on image aspect ratio */
-  .image-wrapper {
-    position:relative; width:100%; height:auto; background:#f5f5f5;
-    border-radius:15px; margin-bottom: clamp(18px, 2.5vw, 25px);
-    display:flex; justify-content:center; align-items:center; overflow:hidden;
-    transition: height .28s ease;
+  h1{font-size:clamp(1.6rem,2.5vw,2.4rem); text-align:center; color:#333; font-weight:800; letter-spacing:.2px}
+  .meta{margin-top:6px; text-align:center; color:#666; font-weight:500}
+  .viewer{
+    position:relative; margin-top:18px; border-radius:16px; overflow:hidden;
+    background:#f5f5f7; box-shadow:0 10px 28px rgba(0,0,0,.08);
+    /* responsive height: smaller on phone, taller on desktop */
+    height:clamp(260px, 70vh, 78vh);
+    display:flex; align-items:center; justify-content:center;
   }
-  .quote-image {
-    width:100%; height:100%; max-width:100%; object-fit:contain; border-radius:15px;
-    display:none; animation:fadeIn .35s ease-in;
+  img#quoteImage{
+    max-width:100%;
+    max-height:100%;
+    width:auto; height:auto;
+    object-fit:contain; /* auto-adjust to image size */
+    display:none; border-radius:14px;
+    transition:opacity .2s ease;
   }
-  .quote-image.active { display:block; }
-  @keyframes fadeIn { from{opacity:0; transform:scale(.98);} to{opacity:1; transform:scale(1);} }
-  @media (prefers-reduced-motion: reduce){ .quote-image { animation:none !important; } }
-
-  .placeholder { color:var(--muted-2); font-size: clamp(1rem, 1vw + 0.9rem, 1.3rem);
-    text-align:center; padding: clamp(24px, 3vw, 40px); width:100%; }
-  .placeholder.hidden { display:none; }
-
-  .btn-row { display:flex; justify-content:center; }
-  button {
-    background:linear-gradient(135deg,var(--bg1) 0%, var(--bg2) 100%);
-    color:#fff; border:none; padding:14px 34px;
-    font-size: clamp(1rem, 0.6vw + 0.9rem, 1.15rem);
-    border-radius:999px; cursor:pointer; transition:transform .2s, box-shadow .2s;
-    font-weight:600; min-height:48px;
+  img#quoteImage.show{ display:block; opacity:1 }
+  .placeholder{ color:#9aa; text-align:center; padding:22px; }
+  .controls{ display:flex; justify-content:center; gap:12px; margin-top:20px; flex-wrap:wrap }
+  button{
+    appearance:none; border:0; cursor:pointer; user-select:none;
+    padding:12px 26px; border-radius:999px; font-weight:700; font-size:1rem;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2)); color:#fff;
+    box-shadow:0 10px 24px rgba(102,126,234,.35);
+    transition:transform .15s ease, box-shadow .15s ease, opacity .2s ease;
   }
-  button:hover { transform:translateY(-2px); box-shadow:0 10px 25px rgba(102,126,234,.4); }
-
-  .loading-overlay { position:absolute; inset:0; background:rgba(0,0,0,.5);
-    display:flex; justify-content:center; align-items:center; border-radius:15px; z-index:2; }
-  .loading-overlay.hidden { display:none; }
-  .spinner { width:44px; height:44px; border:5px solid rgba(255,255,255,.3);
-    border-radius:50%; border-top-color:#fff; animation:spin 1s linear infinite; }
-  @keyframes spin { to{ transform:rotate(360deg); } }
-
-  .copyright { text-align:center; color:var(--muted); font-size:.9rem;
-    padding-top:18px; border-top:1px solid #e0e0e0; margin-top:20px; }
-
-  @media (max-width: 768px){
-    :root{ --pad:24px; --radius:16px; }
-    body { padding:16px; }
-    .container { padding:var(--pad); border-radius:var(--radius); }
-    .image-wrapper, .quote-image { border-radius:14px; }
+  button:disabled{ opacity:.55; cursor:not-allowed; box-shadow:none }
+  button:hover:not(:disabled){ transform:translateY(-1.5px); }
+  .loading{
+    position:absolute; inset:0; background:rgba(0,0,0,.45);
+    display:none; align-items:center; justify-content:center; z-index:5;
   }
-  @media (max-width: 480px){
-    body { padding:12px; }
-    .container { padding:18px; }
-    .btn-row { display:block; }
-    button { width:100%; }
+  .loading.on{ display:flex }
+  .spinner{
+    width:52px; height:52px; border-radius:50%;
+    border:5px solid rgba(255,255,255,.35);
+    border-top-color:#fff; animation:spin 1s linear infinite;
   }
-  @media (max-width: 360px){
-    .container { padding:14px; }
-    .spinner { width:38px; height:38px; }
+  @keyframes spin{ to{ transform:rotate(360deg) } }
+  .footer{ margin-top:16px; padding-top:14px; border-top:1px solid #eee; color:#666; text-align:center; font-size:.92rem }
+  @media (max-width:600px){
+    .card{ padding:18px }
   }
 </style>
 </head>
 <body>
-  <div class="container">
+  <main class="card">
     <h1>✨ Get A Quote</h1>
-    <p class="quote-count">Total Quotes: <strong id="totalCount">0</strong></p>
+    <p class="meta">Total Quotes: <strong id="totalCount">0</strong></p>
 
-    <div class="image-wrapper" id="viewer">
-      <div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div></div>
-      <div class="placeholder" id="placeholder">Tap the button to see an inspiring quote! 🎯</div>
-      <img class="quote-image" id="quoteImage" alt="Quote">
+    <section class="viewer" id="viewer">
+      <div class="loading" id="loading"><div class="spinner"></div></div>
+      <div class="placeholder" id="placeholder">Click “Get A Quote” to see an inspiring quote! 🎯</div>
+      <img id="quoteImage" alt="Quote" decoding="async" referrerpolicy="no-referrer">
+    </section>
+
+    <div class="controls">
+      <button id="randomBtn" disabled>Get A Quote</button>
     </div>
 
-    <div class="btn-row">
-      <button id="quoteBtn">Get A Quote</button>
-    </div>
-
-    <div class="copyright">© Wisdom And Enlightenment Trust</div>
-  </div>
+    <p class="footer">© Wisdom And Enlightenment Trust</p>
+  </main>
 
 <script>
-  // === CONFIG ===
+  // -------- Config --------
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYKfmVEMzFD5LDm0izPYcoI5mXyzKejVX6OCpuSOkPHTaPaL7vMl4E9yYhKU3Qp4j3PQ/exec";
+  const CACHE_KEY = "quotes_list_v2";
+  const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
 
-  // Bump the cache key to avoid stale shapes
-  const CACHE_KEY = "quotes_from_drive_folder_v2";
-  const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+  // -------- DOM --------
+  const totalCountEl = document.getElementById("totalCount");
+  const placeholder = document.getElementById("placeholder");
+  const imgEl = document.getElementById("quoteImage");
+  const randomBtn = document.getElementById("randomBtn");
+  const loading = document.getElementById("loading");
 
-  // Elements
-  const viewer = document.getElementById('viewer');
-  const placeholder = document.getElementById('placeholder');
-  const quoteImage = document.getElementById('quoteImage');
-  const loadingOverlay = document.getElementById('loadingOverlay');
-  const totalCountEl = document.getElementById('totalCount');
-  const quoteBtn = document.getElementById('quoteBtn');
-
-  let ITEMS = [];          // [{id, url}]
+  let IMAGES = [];
   let currentIndex = -1;
-  let lastNatural = { w: 0, h: 0 };
 
-  const showLoading = (on) => loadingOverlay.classList.toggle('hidden', !on);
-
-  // --- helpers ---
-  function saveCache(items) {
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), data: items })); } catch {}
-  }
-  function loadCache() {
+  function setLoading(on){ loading.classList.toggle("on", !!on); }
+  function saveCache(data){ localStorage.setItem(CACHE_KEY, JSON.stringify({t:Date.now(), data})); }
+  function loadCache(){
     try {
-      const d = JSON.parse(localStorage.getItem(CACHE_KEY));
-      if (!d || !Array.isArray(d.data)) return null;
-      if (Date.now() - d.at > CACHE_TTL_MS) return null;
-      return d.data;
+      const raw = localStorage.getItem(CACHE_KEY);
+      if(!raw) return null;
+      const {t, data} = JSON.parse(raw);
+      if(Date.now() - t > CACHE_TTL) return null;
+      return data;
     } catch { return null; }
   }
 
-  function normalizeItems(arr) {
-    if (!Array.isArray(arr)) return [];
-    return arr.map(x => {
-      if (typeof x === 'string') {
-        // If API ever returns strings, try to extract id from ...id=XYZ
-        const m = x.match(/[?&]id=([^&]+)/);
-        return { id: m ? decodeURIComponent(m[1]) : '', url: x };
-      } else if (x && (x.id || x.url)) {
-        return { id: x.id || '', url: x.url || '' };
-      }
-      return null;
-    }).filter(v => v && v.url);
-  }
-
-  async function fetchItems() {
+  async function fetchList(){
     const cached = loadCache();
-    if (cached) return cached;
-
-    const res = await fetch(APPS_SCRIPT_URL, { cache: 'no-store' });
-    if (!res.ok) throw new Error('Apps Script fetch failed: ' + res.status);
-    const json = await res.json();
-    const items = normalizeItems(json);
-    if (items.length) saveCache(items);
-    return items;
-  }
-
-  // Try multiple URL patterns for a file until one loads
-  function candidateUrlsFor(item) {
-    const id = item.id || (item.url.match(/[?&]id=([^&]+)/)?.[1] || '').trim();
-    const urls = [];
-    if (item.url) urls.push(item.url); // given (uc?export=view)
-    if (id) {
-      urls.push(`https://lh3.googleusercontent.com/d/${id}`);                 // very reliable for public images
-      urls.push(`https://drive.google.com/thumbnail?sz=w2000&id=${id}`);     // large thumbnail stream
-      urls.push(`https://drive.google.com/uc?export=download&id=${id}`);     // download endpoint (often works inline)
+    if (cached?.length) return cached;
+    // Abort after 10s just in case
+    const ctl = new AbortController();
+    const to = setTimeout(()=>ctl.abort(), 10000);
+    try{
+      const res = await fetch(APPS_SCRIPT_URL, { signal: ctl.signal, cache: "no-store" });
+      clearTimeout(to);
+      if(!res.ok) throw new Error("Network error");
+      const json = await res.json();
+      // Minimal sanitize: only keep items with id + url
+      const list = (json || []).filter(x => x && x.id && x.url);
+      if(list.length) saveCache(list);
+      return list;
+    } catch(e){
+      clearTimeout(to);
+      return cached || []; // last known good, if any
     }
-    // de-dup
-    return Array.from(new Set(urls));
   }
 
-  function loadWithFallback(item, onSuccess, onFail) {
-    const urls = candidateUrlsFor(item);
-    let k = 0;
+  // Build fallback chain from a file id
+  function makeFallbacks(id){
+    return [
+      `https://lh3.googleusercontent.com/d/${id}`,                       // primary (fastest, least 403)
+      `https://drive.google.com/uc?export=view&id=${id}`,               // fallback 1
+      `https://drive.google.com/thumbnail?sz=w2000&id=${id}`            // fallback 2 (large thumb)
+    ];
+  }
+
+  // Try sources in order until one loads
+  function loadWithFallbacks(id, onDone){
+    const sources = makeFallbacks(id);
+    let idx = 0;
 
     const tryNext = () => {
-      if (k >= urls.length) {
-        onFail?.();
+      if (idx >= sources.length) {
+        onDone(new Error("All fallbacks failed"));
         return;
       }
-      const src = urls[k++];
+      const src = sources[idx++];
       const probe = new Image();
-      probe.onload = () => onSuccess(src, probe.naturalWidth || probe.width, probe.naturalHeight || probe.height);
-      probe.onerror = tryNext;
-      probe.src = src;
+      // Block sending referrer; avoids some Drive anti-hotlinking edge cases
+      probe.referrerPolicy = "no-referrer";
+      probe.decoding = "async";
+
+      probe.onload = () => onDone(null, src, probe);
+      probe.onerror = () => tryNext();
+      probe.src = src + (src.includes("?") ? "&" : "?") + "v=" + Date.now(); // bust caches on errors
     };
+
     tryNext();
   }
 
-  // viewer sizing
-  function resizeViewerToImage() {
-    if (!lastNatural.w || !lastNatural.h) return;
-    const ratio = lastNatural.h / lastNatural.w;
-    const w = viewer.clientWidth || viewer.offsetWidth || 0;
-    const maxH = Math.max(240, window.innerHeight - 160);
-    const targetH = Math.min(w * ratio, maxH);
-    viewer.style.height = `${Math.round(targetH)}px`;
-  }
+  function showRandom(){
+    if (!IMAGES.length) return;
 
-  function showImage(src, naturalW, naturalH, altText) {
-    lastNatural = { w: naturalW, h: naturalH };
-    resizeViewerToImage();
-    quoteImage.src = src;
-    quoteImage.alt = altText || "Quote";
-    quoteImage.classList.add('active');
-  }
-
-  function getRandomQuote() {
-    if (!ITEMS.length) return;
-
-    let i, guard = 0;
-    do {
-      i = Math.floor(Math.random() * ITEMS.length);
-      guard++;
-      if (guard > 20) break;
-    } while (i === currentIndex && ITEMS.length > 1);
+    // new index different from current (if possible)
+    let i;
+    do { i = Math.floor(Math.random() * IMAGES.length); } while (IMAGES.length > 1 && i === currentIndex);
     currentIndex = i;
 
-    const item = ITEMS[i];
+    const item = IMAGES[i];
+    const id = item.id;
 
-    placeholder.classList.add('hidden');
-    quoteImage.classList.remove('active');
-    showLoading(true);
+    placeholder.style.display = "none";
+    imgEl.classList.remove("show");
+    setLoading(true);
 
-    loadWithFallback(item,
-      (src, w, h) => {
-        showLoading(false);
-        showImage(src, w, h, `Quote ${i+1}`);
-      },
-      () => {
-        showLoading(false);
-        placeholder.textContent = "Could not load this image (403/404). It might be private or removed.";
-        placeholder.classList.remove('hidden');
-        // remove the broken one so the next click works
-        ITEMS.splice(i, 1);
-        totalCountEl.textContent = ITEMS.length;
+    loadWithFallbacks(id, (err, bestSrc, probe) => {
+      if (err) {
+        setLoading(false);
+        placeholder.textContent = "Could not load. Ensure Drive folder is public.";
+        placeholder.style.display = "block";
+        return;
       }
-    );
+      // Set intrinsic-friendly sizing (auto-adjust)
+      imgEl.style.maxWidth = "100%";
+      imgEl.style.maxHeight = "100%";
+      imgEl.width = probe.naturalWidth;
+      imgEl.height = probe.naturalHeight;
+
+      imgEl.src = bestSrc;
+      imgEl.alt = item.name || "Quote";
+      imgEl.onload = () => {
+        setLoading(false);
+        imgEl.classList.add("show");
+      };
+    });
   }
 
-  async function init() {
-    showLoading(true);
-    try {
-      ITEMS = await fetchItems();
-      totalCountEl.textContent = ITEMS.length;
-      quoteBtn.disabled = !ITEMS.length;
+  async function init(){
+    setLoading(true);
+    IMAGES = await fetchList();
+    totalCountEl.textContent = IMAGES.length;
+    randomBtn.disabled = IMAGES.length === 0;
+    setLoading(false);
 
-      if (ITEMS.length) {
-        // initial placeholder height
-        viewer.style.height = '48vh';
-        console.log('First item:', ITEMS[0]);
-      } else {
-        viewer.style.height = '260px';
-        placeholder.textContent = 'No images found. Check web app & folder sharing.';
-        placeholder.classList.remove('hidden');
-      }
-    } catch (e) {
-      console.error(e);
-      placeholder.textContent = 'Could not load image list. Check web app access & folder sharing.';
-      placeholder.classList.remove('hidden');
-    } finally {
-      showLoading(false);
-    }
+    // Optional: preload a handful to make first click instant
+    IMAGES.slice(0, 6).forEach(i => {
+      const p = new Image();
+      p.referrerPolicy = "no-referrer";
+      p.src = `https://lh3.googleusercontent.com/d/${i.id}`;
+    });
   }
 
-  window.addEventListener('resize', resizeViewerToImage);
-  window.addEventListener('orientationchange', () => setTimeout(resizeViewerToImage, 120));
-  window.addEventListener('load', () => {
-    quoteBtn.addEventListener('click', getRandomQuote);
-    init();
-  });
+  // Events
+  window.addEventListener("load", init);
+  randomBtn.addEventListener("click", showRandom);
 </script>
 </body>
 </html>
