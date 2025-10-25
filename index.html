@@ -2,70 +2,157 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>Get A Quote</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
-    min-height:100vh; display:flex; justify-content:center; align-items:center; padding:20px;
+  :root{
+    --bg1:#667eea; --bg2:#764ba2;
+    --text:#333; --muted:#666; --muted-2:#999; --white:#fff;
+    --radius:20px;
+    --pad:40px;
   }
-  .container { background:#fff; border-radius:20px; padding:40px;
-    box-shadow:0 20px 60px rgba(0,0,0,.3); max-width:900px; width:100%; }
-  h1 { text-align:center; color:#333; margin-bottom:10px; font-size:2.5em; }
-  .quote-count { text-align:center; color:#666; margin-bottom:20px; font-size:1.1em; font-weight:500; }
-  .image-wrapper { position:relative; width:100%; min-height:400px; border-radius:15px; margin-bottom:18px; background:#f5f5f5;
-    display:flex; justify-content:center; align-items:center; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.1); }
-  .quote-image { max-width:100%; max-height:600px; object-fit:contain; border-radius:15px; display:none; animation:fadeIn .5s ease-in; }
+
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body {
+    margin:0;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color:var(--text);
+    background:linear-gradient(135deg,var(--bg1) 0%, var(--bg2) 100%);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    -webkit-tap-highlight-color:transparent;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0));
+  }
+
+  .container {
+    background:var(--white);
+    border-radius:var(--radius);
+    padding:var(--pad);
+    box-shadow:0 20px 60px rgba(0,0,0,.3);
+    width:100%;
+    max-width:900px;
+  }
+
+  h1 {
+    text-align:center;
+    color:var(--text);
+    margin:0 0 10px;
+    /* scales between ~26px and ~40px */
+    font-size: clamp(1.625rem, 2.5vw + 1rem, 2.5rem);
+    line-height:1.15;
+  }
+
+  .quote-count {
+    text-align:center;
+    color:var(--muted);
+    margin-bottom:20px;
+    font-size: clamp(0.95rem, 0.5vw + 0.8rem, 1.1rem);
+    font-weight:500;
+  }
+
+  .image-wrapper {
+    position:relative;
+    width:100%;
+    /* Desktop/tablet: roomy; Mobile: use viewport height smartly */
+    min-height: 420px;
+    border-radius:15px;
+    margin-bottom: clamp(18px, 2.5vw, 25px);
+    background:#f5f5f5;
+    display:flex; justify-content:center; align-items:center;
+    overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.1);
+  }
+
+  /* Modern mobile browsers: small-viewport units avoid URL-bar jump */
+  @supports (height: 100svh) {
+    .image-wrapper { min-height: min(58svh, 520px); }
+  }
+  @supports not (height: 100svh) {
+    .image-wrapper { min-height: min(60vh, 520px); }
+  }
+
+  .quote-image {
+    max-width:100%;
+    /* Keep image inside the visible viewport nicely */
+    max-height: 70vh;
+    object-fit:contain;
+    border-radius:15px;
+    display:none;
+    animation:fadeIn .5s ease-in;
+  }
+  @supports (height: 100svh) {
+    .quote-image { max-height: 72svh; }
+  }
+
   .quote-image.active { display:block; }
-  @keyframes fadeIn { from{opacity:0; transform:scale(.95);} to{opacity:1; transform:scale(1);} }
-  .placeholder { color:#999; font-size:1.3em; text-align:center; padding:40px; }
+
+  @keyframes fadeIn { from{ opacity:0; transform:scale(.98);} to{ opacity:1; transform:scale(1);} }
+  @media (prefers-reduced-motion: reduce){
+    .quote-image { animation:none !important; }
+  }
+
+  .placeholder {
+    color:var(--muted-2);
+    font-size: clamp(1rem, 1vw + 0.9rem, 1.3rem);
+    text-align:center;
+    padding: clamp(24px, 3vw, 40px);
+  }
   .placeholder.hidden { display:none; }
 
-  .btn-row { display:flex; gap:12px; justify-content:center; margin-bottom:26px; flex-wrap:wrap; }
+  .btn-row { display:flex; justify-content:center; }
   button {
-    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:#fff; border:none; padding:12px 28px;
-    font-size:1.05em; border-radius:999px; cursor:pointer; transition:transform .2s, box-shadow .2s; font-weight:600;
+    background:linear-gradient(135deg,var(--bg1) 0%, var(--bg2) 100%);
+    color:#fff; border:none;
+    padding:14px 34px;
+    font-size: clamp(1rem, 0.6vw + 0.9rem, 1.15rem);
+    border-radius:999px; cursor:pointer;
+    transition:transform .2s, box-shadow .2s;
+    font-weight:600;
+    min-height:48px; /* touch target */
   }
   button:hover { transform:translateY(-2px); box-shadow:0 10px 25px rgba(102,126,234,.4); }
 
-  .loading-overlay { position:absolute; inset:0; background:rgba(0,0,0,.5); display:flex; justify-content:center; align-items:center; border-radius:15px; z-index:2; }
+  .loading-overlay {
+    position:absolute; inset:0; background:rgba(0,0,0,.5);
+    display:flex; justify-content:center; align-items:center;
+    border-radius:15px; z-index:2;
+  }
   .loading-overlay.hidden { display:none; }
-  .spinner { width:50px; height:50px; border:5px solid rgba(255,255,255,.3); border-radius:50%; border-top-color:#fff; animation:spin 1s linear infinite; }
+  .spinner {
+    width:44px; height:44px; border:5px solid rgba(255,255,255,.3);
+    border-radius:50%; border-top-color:#fff; animation:spin 1s linear infinite;
+  }
   @keyframes spin { to{ transform:rotate(360deg); } }
 
-  .history-section { margin-top:20px; padding-top:20px; border-top:2px solid #e0e0e0; }
-  .history-title { text-align:center; color:#333; font-size:1.2em; margin-bottom:12px; font-weight:600; }
-  .history-container {
-    display:flex; gap:12px; overflow-x:auto; padding:10px 0; scrollbar-width:thin; scrollbar-color:#667eea #f0f0f0;
-  }
-  .history-container::-webkit-scrollbar { height:8px; }
-  .history-container::-webkit-scrollbar-thumb { background:#667eea; border-radius:10px; }
-
-  /* ✅ Thumbnails improved behavior */
-  .history-item {
-    flex-shrink:0; width:120px; height:120px; border-radius:10px; overflow:hidden; cursor:pointer;
-    transition:transform .2s, box-shadow .2s; box-shadow:0 4px 10px rgba(0,0,0,.1);
-    user-select:none; outline:none;
-  }
-  .history-item:hover, .history-item:focus {
-    transform:scale(1.05); box-shadow:0 6px 15px rgba(102,126,234,.3);
-  }
-  .history-item[aria-current="true"] {
-    box-shadow:0 0 0 3px rgba(118,75,162,0.45);
+  .copyright {
+    text-align:center; color:var(--muted); font-size:.9rem;
+    padding-top:18px; border-top:1px solid #e0e0e0; margin-top:20px;
   }
 
-  .history-item img {
-    width:100%; height:100%; object-fit:cover;
-    pointer-events:none; user-drag:none; -webkit-user-drag:none;
+  /* ======= Mobile-first tweaks ======= */
+  @media (max-width: 768px){
+    :root{ --pad:24px; --radius:16px; }
+    body { padding:16px; }
+    .container { padding:var(--pad); border-radius:var(--radius); }
+    .image-wrapper { border-radius:14px; }
+    .quote-image { border-radius:14px; }
+    .btn-row { padding:2px 0; }
   }
 
-  .history-empty { text-align:center; color:#999; font-style:italic; padding:20px; }
-  .copyright { text-align:center; color:#666; font-size:.9em; padding-top:18px; border-top:1px solid #e0e0e0; }
+  @media (max-width: 480px){
+    body { padding:12px; }
+    .container { padding:18px; }
+    .image-wrapper { margin-bottom:18px; }
+    .btn-row { display:block; }
+    button { width:100%; }
+  }
 
-  @media (max-width:768px){
-    .container{padding:20px} h1{font-size:2em} .image-wrapper{min-height:300px} .quote-image{max-height:400px}
+  /* Ultra-small screens */
+  @media (max-width: 360px){
+    .container { padding:14px; }
+    .spinner { width:38px; height:38px; }
   }
 </style>
 </head>
@@ -76,188 +163,97 @@
 
     <div class="image-wrapper">
       <div class="loading-overlay hidden" id="loadingOverlay"><div class="spinner"></div></div>
-      <div class="placeholder" id="placeholder">Click "Get A Quote" to see an inspiring quote! 🎯</div>
+      <div class="placeholder" id="placeholder">Tap the button to see an inspiring quote! 🎯</div>
       <img class="quote-image" id="quoteImage" alt="Quote">
     </div>
 
     <div class="btn-row">
       <button id="quoteBtn">Get A Quote</button>
-      <button id="refreshBtn" title="Fetch latest from Drive (bypass cache)">Refresh List</button>
-    </div>
-
-    <div class="history-section">
-      <div class="history-title">📜 Recent Quotes</div>
-      <div class="history-container" id="historyContainer">
-        <div class="history-empty">No quotes viewed yet. Click "Get A Quote" to start!</div>
-      </div>
     </div>
 
     <div class="copyright">© Wisdom And Enlightenment Trust</div>
   </div>
 
 <script>
-// === CONFIG ===
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYKfmVEMzFD5LDm0izPYcoI5mXyzKejVX6OCpuSOkPHTaPaL7vMl4E9yYhKU3Qp4j3PQ/exec";
-const CACHE_KEY = "quotes_from_drive_folder_v1";
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+  // === CONFIG ===
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYKfmVEMzFD5LDm0izPYcoI5mXyzKejVX6OCpuSOkPHTaPaL7vMl4E9yYhKU3Qp4j3PQ/exec";
+  const CACHE_KEY = "quotes_from_drive_folder_v1";
+  const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
-// === UI Refs ===
-const placeholder = document.getElementById('placeholder');
-const quoteImage = document.getElementById('quoteImage');
-const loadingOverlay = document.getElementById('loadingOverlay');
-const totalCountEl = document.getElementById('totalCount');
-const quoteBtn = document.getElementById('quoteBtn');
-const refreshBtn = document.getElementById('refreshBtn');
-const historyEl = document.getElementById('historyContainer');
+  // Elements
+  const placeholder = document.getElementById('placeholder');
+  const quoteImage = document.getElementById('quoteImage');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const totalCountEl = document.getElementById('totalCount');
+  const quoteBtn = document.getElementById('quoteBtn');
 
-let QUOTE_IMAGES = [];
-let currentIndex = -1;
+  let QUOTE_IMAGES = [];
+  let currentIndex = -1;
 
-// ✅ Smooth auto scroll helper
-function scrollIntoViewSmooth(el) {
-  try {
-    el.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'nearest' });
-  } catch {
-    el.scrollIntoView();
+  const showLoading = (on) => loadingOverlay.classList.toggle('hidden', !on);
+
+  function saveCache(data) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), data })); } catch {}
   }
-}
+  function loadCache() {
+    try {
+      const d = JSON.parse(localStorage.getItem(CACHE_KEY));
+      if (!d || !d.data) return null;
+      if (Date.now() - d.at > CACHE_TTL_MS) return null;
+      return d.data;
+    } catch { return null; }
+  }
 
-const showLoading = (on) => loadingOverlay.classList.toggle('hidden', !on);
-
-function saveCache(data) {
-  localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), data }));
-}
-function loadCache() {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (Date.now() - parsed.at > CACHE_TTL_MS) return null;
-    return parsed.data;
-  } catch { return null; }
-}
-function clearCache() { localStorage.removeItem(CACHE_KEY); }
-
-async function fetchImages({ bypassCache = false } = {}) {
-  if (!bypassCache) {
+  async function fetchImages() {
     const cached = loadCache();
     if (cached && cached.length) return cached;
-  }
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 8000);
-  try {
-    const res = await fetch(APPS_SCRIPT_URL, { signal: controller.signal });
-    clearTimeout(t);
-    if (!res.ok) throw new Error("Bad response");
+    const res = await fetch(APPS_SCRIPT_URL);
     const json = await res.json();
-    const list = (json || []).map(x => x.url).filter(Boolean);
-    if (list.length) saveCache(list);
-    return list;
-  } catch (e) {
-    clearTimeout(t);
-    return [];
+    if (json.length) saveCache(json);
+    return json;
   }
-}
 
-function markSelected(wrap) {
-  historyEl.querySelectorAll('.history-item[aria-current="true"]')
-    .forEach(el => el.removeAttribute('aria-current'));
-  if (wrap) {
-    wrap.setAttribute('aria-current','true');
-    scrollIntoViewSmooth(wrap);
-  }
-}
+  function getRandomQuote() {
+    if (!QUOTE_IMAGES.length) return;
 
-function pushToHistory(src) {
-  const empty = historyEl.querySelector('.history-empty');
-  if (empty) empty.remove();
+    let i;
+    do { i = Math.floor(Math.random() * QUOTE_IMAGES.length); }
+    while (i === currentIndex && QUOTE_IMAGES.length > 1);
+    currentIndex = i;
 
-  const wrap = document.createElement('div');
-  wrap.className = 'history-item';
-  wrap.setAttribute('role','button');
-  wrap.setAttribute('tabindex','0');
-  wrap.setAttribute('aria-label','Show this quote');
-
-  const img = document.createElement('img');
-  img.src = src;
-  img.alt = 'Viewed quote';
-  img.draggable = false;
-
-  const activate = () => {
     placeholder.classList.add('hidden');
     quoteImage.classList.remove('active');
     showLoading(true);
 
-    const t = new Image();
-    t.onload = () => {
+    const src = QUOTE_IMAGES[i];
+    const img = new Image();
+    img.onload = () => {
       quoteImage.src = src;
-      quoteImage.alt = 'History Selected Quote';
+      quoteImage.alt = `Quote ${i+1}`;
       quoteImage.classList.add('active');
       showLoading(false);
-      markSelected(wrap);
     };
-    t.onerror = () => showLoading(false);
-    t.src = src;
-  };
+    img.onerror = () => {
+      showLoading(false);
+      placeholder.textContent = "Could not load. Ensure Drive folder & files are public.";
+      placeholder.classList.remove('hidden');
+    };
+    img.src = src;
+  }
 
-  wrap.addEventListener('click', activate);
-  wrap.addEventListener('keydown', (e)=>{
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      activate();
-    }
-  });
-
-  wrap.appendChild(img);
-  historyEl.prepend(wrap);
-}
-
-function getRandomQuote() {
-  if (!QUOTE_IMAGES.length) return;
-  let i;
-  do { i = Math.floor(Math.random() * QUOTE_IMAGES.length); } while (i === currentIndex && QUOTE_IMAGES.length > 1);
-  currentIndex = i;
-
-  placeholder.classList.add('hidden');
-  quoteImage.classList.remove('active');
-  showLoading(true);
-
-  const nextSrc = QUOTE_IMAGES[i];
-  const temp = new Image();
-  temp.onload = () => {
-    quoteImage.src = nextSrc;
-    quoteImage.alt = `Quote ${i+1}`;
-    quoteImage.classList.add('active');
+  async function init() {
+    showLoading(true);
+    const list = await fetchImages();
+    QUOTE_IMAGES = list.map(x => x.url);
+    totalCountEl.textContent = QUOTE_IMAGES.length;
+    quoteBtn.disabled = !QUOTE_IMAGES.length;
     showLoading(false);
-    pushToHistory(nextSrc);
-    markSelected(historyEl.querySelector('.history-item'));
-  };
-  temp.onerror = () => {
-    showLoading(false);
-    placeholder.textContent = 'Could not load. Ensure Drive folder is public.';
-    placeholder.classList.remove('hidden');
-  };
-  temp.src = nextSrc;
-}
+  }
 
-async function init({ bypassCache = false } = {}) {
-  showLoading(true);
-  QUOTE_IMAGES = await fetchImages({ bypassCache });
-  totalCountEl.textContent = QUOTE_IMAGES.length;
-  quoteBtn.disabled = QUOTE_IMAGES.length === 0;
-  QUOTE_IMAGES.slice(0,8).forEach(src => { const img = new Image(); img.src = src; });
-  showLoading(false);
-}
-
-// Events
-window.addEventListener('load', () => {
-  quoteBtn.addEventListener('click', getRandomQuote);
-  refreshBtn.addEventListener('click', async () => {
-    clearCache();
-    await init({ bypassCache:true });
+  window.addEventListener('load', () => {
+    quoteBtn.addEventListener('click', getRandomQuote);
+    init(); // auto load list on start
   });
-  init();
-});
 </script>
 </body>
 </html>
