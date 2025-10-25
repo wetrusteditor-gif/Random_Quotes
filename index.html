@@ -8,116 +8,65 @@
   :root{
     --bg1:#667eea; --bg2:#764ba2;
     --text:#333; --muted:#666; --muted-2:#999; --white:#fff;
-    --radius:20px;
-    --pad:40px;
+    --radius:20px; --pad:40px;
   }
-
   * { box-sizing:border-box; }
   html,body { height:100%; }
   body {
-    margin:0;
-    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color:var(--text);
+    margin:0; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color:var(--text);
     background:linear-gradient(135deg,var(--bg1) 0%, var(--bg2) 100%);
-    display:flex; align-items:center; justify-content:center;
-    padding:20px;
-    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-    -webkit-tap-highlight-color:transparent;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; -webkit-tap-highlight-color:transparent;
     padding-bottom: calc(20px + env(safe-area-inset-bottom, 0));
   }
-
   .container {
-    background:var(--white);
-    border-radius:var(--radius);
-    padding:var(--pad);
-    box-shadow:0 20px 60px rgba(0,0,0,.3);
-    width:100%;
-    max-width:900px;
+    background:var(--white); border-radius:var(--radius); padding:var(--pad);
+    box-shadow:0 20px 60px rgba(0,0,0,.3); width:100%; max-width:900px;
   }
+  h1 { text-align:center; margin:0 0 10px; color:var(--text);
+    font-size: clamp(1.625rem, 2.5vw + 1rem, 2.5rem); line-height:1.15; }
+  .quote-count { text-align:center; color:var(--muted); margin-bottom:20px;
+    font-size: clamp(0.95rem, 0.5vw + 0.8rem, 1.1rem); font-weight:500; }
 
-  h1 {
-    text-align:center;
-    color:var(--text);
-    margin:0 0 10px;
-    font-size: clamp(1.625rem, 2.5vw + 1rem, 2.5rem);
-    line-height:1.15;
-  }
-
-  .quote-count {
-    text-align:center;
-    color:var(--muted);
-    margin-bottom:20px;
-    font-size: clamp(0.95rem, 0.5vw + 0.8rem, 1.1rem);
-    font-weight:500;
-  }
-
-  /* Viewer auto-sizes: height set dynamically via JS */
+  /* Viewer height is set dynamically based on image aspect ratio */
   .image-wrapper {
-    position:relative;
-    width:100%;
-    height:auto;            /* JS will set explicit height after image load */
-    background:#f5f5f5;
-    border-radius:15px;
-    margin-bottom: clamp(18px, 2.5vw, 25px);
-    display:flex; justify-content:center; align-items:center;
-    overflow:hidden;
-    transition: height .28s ease;  /* smooth resize */
+    position:relative; width:100%; height:auto; background:#f5f5f5;
+    border-radius:15px; margin-bottom: clamp(18px, 2.5vw, 25px);
+    display:flex; justify-content:center; align-items:center; overflow:hidden;
+    transition: height .28s ease;
   }
-
   .quote-image {
-    width:100%;
-    height:100%;
-    max-width:100%;
-    object-fit:contain;     /* never crop or distort */
-    border-radius:15px;
-    display:none;
-    animation:fadeIn .35s ease-in;
+    width:100%; height:100%; max-width:100%; object-fit:contain; border-radius:15px;
+    display:none; animation:fadeIn .35s ease-in;
   }
   .quote-image.active { display:block; }
-
-  @keyframes fadeIn { from{ opacity:0; transform:scale(.98);} to{ opacity:1; transform:scale(1);} }
+  @keyframes fadeIn { from{opacity:0; transform:scale(.98);} to{opacity:1; transform:scale(1);} }
   @media (prefers-reduced-motion: reduce){ .quote-image { animation:none !important; } }
 
-  .placeholder {
-    color:var(--muted-2);
-    font-size: clamp(1rem, 1vw + 0.9rem, 1.3rem);
-    text-align:center;
-    padding: clamp(24px, 3vw, 40px);
-    width:100%;
-  }
+  .placeholder { color:var(--muted-2); font-size: clamp(1rem, 1vw + 0.9rem, 1.3rem);
+    text-align:center; padding: clamp(24px, 3vw, 40px); width:100%; }
   .placeholder.hidden { display:none; }
 
   .btn-row { display:flex; justify-content:center; }
   button {
     background:linear-gradient(135deg,var(--bg1) 0%, var(--bg2) 100%);
-    color:#fff; border:none;
-    padding:14px 34px;
+    color:#fff; border:none; padding:14px 34px;
     font-size: clamp(1rem, 0.6vw + 0.9rem, 1.15rem);
-    border-radius:999px; cursor:pointer;
-    transition:transform .2s, box-shadow .2s;
-    font-weight:600;
-    min-height:48px; /* touch target */
+    border-radius:999px; cursor:pointer; transition:transform .2s, box-shadow .2s;
+    font-weight:600; min-height:48px;
   }
   button:hover { transform:translateY(-2px); box-shadow:0 10px 25px rgba(102,126,234,.4); }
 
-  .loading-overlay {
-    position:absolute; inset:0; background:rgba(0,0,0,.5);
-    display:flex; justify-content:center; align-items:center;
-    border-radius:15px; z-index:2;
-  }
+  .loading-overlay { position:absolute; inset:0; background:rgba(0,0,0,.5);
+    display:flex; justify-content:center; align-items:center; border-radius:15px; z-index:2; }
   .loading-overlay.hidden { display:none; }
-  .spinner {
-    width:44px; height:44px; border:5px solid rgba(255,255,255,.3);
-    border-radius:50%; border-top-color:#fff; animation:spin 1s linear infinite;
-  }
+  .spinner { width:44px; height:44px; border:5px solid rgba(255,255,255,.3);
+    border-radius:50%; border-top-color:#fff; animation:spin 1s linear infinite; }
   @keyframes spin { to{ transform:rotate(360deg); } }
 
-  .copyright {
-    text-align:center; color:var(--muted); font-size:.9rem;
-    padding-top:18px; border-top:1px solid #e0e0e0; margin-top:20px;
-  }
+  .copyright { text-align:center; color:var(--muted); font-size:.9rem;
+    padding-top:18px; border-top:1px solid #e0e0e0; margin-top:20px; }
 
-  /* Mobile-first tweaks */
   @media (max-width: 768px){
     :root{ --pad:24px; --radius:16px; }
     body { padding:16px; }
@@ -170,12 +119,13 @@
 
   let QUOTE_IMAGES = [];
   let currentIndex = -1;
-  let lastNatural = { w: 0, h: 0 }; // remember last image natural size for responsive recalcs
+  let lastNatural = { w: 0, h: 0 };
 
   const showLoading = (on) => loadingOverlay.classList.toggle('hidden', !on);
 
-  function saveCache(data) {
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), data })); } catch {}
+  // Cache helpers
+  function saveCache(urls) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), data: urls })); } catch {}
   }
   function loadCache() {
     try {
@@ -186,22 +136,30 @@
     } catch { return null; }
   }
 
+  // 🔧 Normalize your Apps Script output (objects → urls)
   async function fetchImages() {
     const cached = loadCache();
     if (cached && cached.length) return cached;
-    const res = await fetch(APPS_SCRIPT_URL);
+
+    const res = await fetch(APPS_SCRIPT_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('Apps Script fetch failed: ' + res.status);
     const json = await res.json();
-    if (json.length) saveCache(json);
-    return json;
+
+    // Accept array of objects with .url (your case) or array of string URLs
+    const urls = Array.isArray(json)
+      ? json.map(item => (typeof item === 'string' ? item : item && item.url)).filter(Boolean)
+      : [];
+
+    if (urls.length) saveCache(urls);
+    return urls;
   }
 
-  // Resize viewer to match current image aspect ratio and viewport limits
+  // Auto-size viewer to image aspect ratio
   function resizeViewerToImage() {
-    if (!lastNatural.w || !lastNatural.h) return; // no image yet
+    if (!lastNatural.w || !lastNatural.h) return;
     const ratio = lastNatural.h / lastNatural.w;
     const w = viewer.clientWidth || viewer.offsetWidth || 0;
-    // Keep some breathing room from viewport edges
-    const maxH = Math.max(240, window.innerHeight - 160);
+    const maxH = Math.max(240, window.innerHeight - 160); // keep some breathing room
     const targetH = Math.min(w * ratio, maxH);
     viewer.style.height = `${Math.round(targetH)}px`;
   }
@@ -209,7 +167,6 @@
   function showImage(src, naturalW, naturalH, altText) {
     lastNatural = { w: naturalW, h: naturalH };
     resizeViewerToImage();
-
     quoteImage.src = src;
     quoteImage.alt = altText || "Quote";
     quoteImage.classList.add('active');
@@ -237,7 +194,6 @@
       showLoading(false);
       placeholder.textContent = "Could not load. Ensure Drive folder & files are public.";
       placeholder.classList.remove('hidden');
-      // collapse viewer gracefully if error
       viewer.style.height = '';
     };
     img.src = src;
@@ -245,16 +201,23 @@
 
   async function init() {
     showLoading(true);
-    const list = await fetchImages();
-    QUOTE_IMAGES = list.map(x => x.url);
-    totalCountEl.textContent = QUOTE_IMAGES.length;
-    quoteBtn.disabled = !QUOTE_IMAGES.length;
-    showLoading(false);
-    // Start with a gentle placeholder height so layout isn't jumpy before first image
-    viewer.style.height = '48vh';
+    try {
+      const urls = await fetchImages();
+      QUOTE_IMAGES = urls;
+      totalCountEl.textContent = QUOTE_IMAGES.length;
+      quoteBtn.disabled = !QUOTE_IMAGES.length;
+      // start with a gentle height; will snap to image on first load
+      viewer.style.height = QUOTE_IMAGES.length ? '48vh' : '260px';
+    } catch (e) {
+      console.error(e);
+      placeholder.textContent = 'Could not load image list. Check web app access & folder sharing.';
+      placeholder.classList.remove('hidden');
+    } finally {
+      showLoading(false);
+    }
   }
 
-  // Recalculate on viewport/orientation changes
+  // Recompute height on viewport/orientation change
   window.addEventListener('resize', resizeViewerToImage);
   window.addEventListener('orientationchange', () => setTimeout(resizeViewerToImage, 120));
 
