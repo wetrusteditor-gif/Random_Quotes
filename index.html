@@ -12,45 +12,30 @@
     background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 100%);
     min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px;
   }
-  .card{
-    width:min(980px,100%); background:#fff; border-radius:20px; padding:28px;
-    box-shadow:0 18px 60px rgba(0,0,0,.25);
-  }
+  .card{ width:min(980px,100%); background:#fff; border-radius:20px; padding:28px;
+    box-shadow:0 18px 60px rgba(0,0,0,.25); }
   h1{font-size:clamp(1.6rem,2.5vw,2.4rem); text-align:center; color:#333; font-weight:800; letter-spacing:.2px}
   .meta{margin-top:6px; text-align:center; color:#666; font-weight:500}
   .status{margin-top:8px; text-align:center; color:#888; font-size:.88rem; height:18px; display:none;}
-  .viewer{
-    position:relative; margin-top:18px; border-radius:16px; overflow:hidden;
+  .viewer{ position:relative; margin-top:18px; border-radius:16px; overflow:hidden;
     background:#f5f5f7; box-shadow:0 10px 28px rgba(0,0,0,.08);
-    height:clamp(260px, 70vh, 78vh);
-    display:flex; align-items:center; justify-content:center;
-  }
-  img#quoteImage{
-    max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain;
-    display:none; border-radius:14px; transition:opacity .2s ease;
-  }
+    height:clamp(260px, 70vh, 78vh); display:flex; align-items:center; justify-content:center; }
+  img#quoteImage{ max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain;
+    display:none; border-radius:14px; transition:opacity .2s ease; }
   img#quoteImage.show{ display:block; opacity:1 }
   .placeholder{ color:#9aa; text-align:center; padding:22px; }
   .controls{ display:flex; justify-content:center; gap:12px; margin-top:20px; flex-wrap:wrap }
-  button{
-    appearance:none; border:0; cursor:pointer; user-select:none;
+  button{ appearance:none; border:0; cursor:pointer; user-select:none;
     padding:12px 26px; border-radius:999px; font-weight:700; font-size:1rem;
     background:linear-gradient(135deg,var(--bg1),var(--bg2)); color:#fff;
     box-shadow:0 10px 24px rgba(102,126,234,.35);
-    transition:transform .15s ease, box-shadow .15s ease, opacity .2s ease;
-  }
+    transition:transform .15s ease, box-shadow .15s ease, opacity .2s ease; }
   button:disabled{ opacity:.55; cursor:not-allowed; box-shadow:none }
   button:hover:not(:disabled){ transform:translateY(-1.5px); }
-  .loading{
-    position:absolute; inset:0; background:rgba(0,0,0,.45);
-    display:flex; align-items:center; justify-content:center; z-index:5;
-    flex-direction:column; gap:12px;
-  }
-  .spinner{
-    width:52px; height:52px; border-radius:50%;
-    border:5px solid rgba(255,255,255,.35);
-    border-top-color:#fff; animation:spin 1s linear infinite;
-  }
+  .loading{ position:absolute; inset:0; background:rgba(0,0,0,.45);
+    display:flex; align-items:center; justify-content:center; z-index:5; flex-direction:column; gap:12px; }
+  .spinner{ width:52px; height:52px; border-radius:50%;
+    border:5px solid rgba(255,255,255,.35); border-top-color:#fff; animation:spin 1s linear infinite; }
   .loading-text{color:#fff; font-weight:600; font-size:.95rem}
   @keyframes spin{ to{ transform:rotate(360deg) } }
   .footer{ margin-top:16px; padding-top:14px; border-top:1px solid #eee; color:#666; text-align:center; font-size:.92rem }
@@ -60,7 +45,12 @@
 <body>
   <main class="card">
     <h1>✨ Get A Quote</h1>
-    <p class="meta">Total Quotes: <strong id="totalCount">0</strong></p>
+
+    <!-- Quote Date ABOVE the image; hidden until image is fully loaded -->
+    <p class="meta" id="quoteDate" style="display:none;">
+      Quote Date: <strong id="quoteDateValue"></strong>
+    </p>
+
     <p class="status" id="statusText"></p>
 
     <section class="viewer" id="viewer">
@@ -80,79 +70,141 @@
   </main>
 
 <script>
+  // -------- Config --------
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYKfmVEMzFD5LDm0izPYcoI5mXyzKejVX6OCpuSOkPHTaPaL7vMl4E9yYhKU3Qp4j3PQ/exec";
-  const PAGE_SIZE = 1500;
+  const PAGE_SIZE = 1500; // big page to finish quickly
 
-  const totalCountEl = document.getElementById("totalCount");
-  const statusText = document.getElementById("statusText");
-  const placeholder = document.getElementById("placeholder");
-  const imgEl = document.getElementById("quoteImage");
-  const randomBtn = document.getElementById("randomBtn");
-  const loading = document.getElementById("loading");
-  const loadingText = document.getElementById("loadingText");
+  // -------- DOM --------
+  const statusText      = document.getElementById("statusText");
+  const placeholder     = document.getElementById("placeholder");
+  const imgEl           = document.getElementById("quoteImage");
+  const randomBtn       = document.getElementById("randomBtn");
+  const loading         = document.getElementById("loading");
+  const loadingText     = document.getElementById("loadingText");
+  const quoteDateWrap   = document.getElementById("quoteDate");
+  const quoteDateValue  = document.getElementById("quoteDateValue");
 
   let IMAGES = [];
   let totalImagesCount = 0;
 
   function updateProgressText(loaded, total){
-    let percent = total > 0 ? Math.floor((loaded/total)*100) : 0;
-    loadingText.textContent = `${percent}% complete…`;
+    const percent = total > 0 ? Math.floor((loaded/total)*100) : 0;
+    const text = `${percent}% complete…`;
+    loadingText.textContent = text;
     statusText.style.display = "block";
-    statusText.textContent = `${percent}% complete…`;
+    statusText.textContent = text;
+  }
+
+  // Parse DDMMYYYY from filename and format with FULL month (e.g., 27 October 2025)
+  function extractQuoteDate(name){
+    if(!name) return null;
+    const m = name.match(/(\d{2})(\d{2})(\d{4})/);
+    if(!m) return null;
+    const dd = +m[1], mm = +m[2], yyyy = +m[3];
+    if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+    const d = new Date(yyyy, mm - 1, dd);
+    if (d.getFullYear() !== yyyy || d.getMonth() !== mm - 1 || d.getDate() !== dd) return null;
+    try {
+      return d.toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric' });
+    } catch {
+      // Fallback with full month name via Intl if available
+      const monthNames = [
+        'January','February','March','April','May','June',
+        'July','August','September','October','November','December'
+      ];
+      return `${String(dd).padStart(2,'0')} ${monthNames[mm-1]} ${yyyy}`;
+    }
+  }
+
+  function computeQuoteDateDisplay(item){
+    return item.quoteDateDisplay || extractQuoteDate(item.name);
   }
 
   async function loadAllQuotes(){
-    let page = 1, hasMore = true;
+    let page=1, hasMore=true;
     IMAGES = [];
 
     while(hasMore){
       const res = await fetch(`${APPS_SCRIPT_URL}?page=${page}&pageSize=${PAGE_SIZE}`);
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      if(!json.success) throw new Error(json.message);
+      if(!json.success) throw new Error(json.message || "Load error");
 
       if(json.totalCount) totalImagesCount = json.totalCount;
-      totalCountEl.textContent = totalImagesCount;
 
-      IMAGES.push(...json.data.map(x=>({id:x.id,name:x.name||"Quote"})));
+      IMAGES.push(...json.data.map(x => ({
+        id: x.id,
+        name: x.name || "Quote",
+        quoteDateDisplay: x.quoteDateDisplay || null,
+        quoteDateISO: x.quoteDateISO || null
+      })));
+
       updateProgressText(IMAGES.length, totalImagesCount);
-
       hasMore = json.hasMore;
       page++;
     }
 
-    // Done ✅
+    // 100% — hide overlay, clear status, enable button
     loading.style.display = "none";
     randomBtn.disabled = false;
-
-    // Hide status line cleanly
-    setTimeout(() => {
-      statusText.textContent = "";
-      statusText.style.display = "none";
-    }, 800);
+    setTimeout(() => { statusText.textContent = ""; statusText.style.display = "none"; }, 900);
   }
 
   function showRandom(){
-    const i = Math.floor(Math.random() * IMAGES.length);
-    const {id,name} = IMAGES[i];
+    if (!IMAGES.length) return;
 
-    placeholder.style.display="none";
+    // hide date until the image is fully loaded
+    quoteDateWrap.style.display = "none";
+    quoteDateValue.textContent = "";
+
+    // cryptographically strong random index
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    const idx = arr[0] % IMAGES.length;
+    const item = IMAGES[idx];
+
+    placeholder.style.display = "none";
     imgEl.classList.remove("show");
 
-    loading.style.display="flex";
-    loadingText.textContent="Loading quote…";
+    // show overlay while a specific image loads
+    loading.style.display = "flex";
+    loadingText.textContent = "Loading quote…";
 
-    const url = `https://lh3.googleusercontent.com/d/${id}?v=${Date.now()}`;
+    const url = `https://lh3.googleusercontent.com/d/${item.id}?v=${Date.now()}`;
     imgEl.src = url;
-    imgEl.alt = name;
-    imgEl.onload = () => { loading.style.display="none"; imgEl.classList.add("show"); };
+    imgEl.alt = item.name;
+
+    imgEl.onload = () => {
+      loading.style.display = "none";
+      imgEl.classList.add("show");
+
+      // NOW (after full load) show the date with full month name
+      const display = computeQuoteDateDisplay(item);
+      if (display) {
+        quoteDateValue.textContent = display;
+        quoteDateWrap.style.display = "block";
+      } else {
+        quoteDateWrap.style.display = "none";
+      }
+    };
+
     imgEl.onerror = () => {
-      loading.style.display="none";
-      placeholder.textContent="Could not load quote";
-      placeholder.style.display="block";
+      loading.style.display = "none";
+      quoteDateWrap.style.display = "none";
+      placeholder.textContent = "Could not load quote";
+      placeholder.style.display = "block";
     };
   }
 
-  window.addEventListener("load", loadAllQuotes);
+  // Init: load everything first; keep overlay until done
+  window.addEventListener("load", () => {
+    // overlay already visible via HTML
+    loadAllQuotes().catch(e => {
+      console.error(e);
+      loadingText.textContent = "Failed to load";
+    });
+  });
+
   randomBtn.addEventListener("click", showRandom);
 </script>
 </body>
