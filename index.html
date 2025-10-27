@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Get A Quote</title>
 <style>
-  :root{
-    --bg1:#667eea; --bg2:#764ba2;
-  }
+  :root{ --bg1:#667eea; --bg2:#764ba2; }
   *{margin:0;padding:0;box-sizing:border-box}
   body{
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;
@@ -15,26 +13,21 @@
     min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px;
   }
   .card{
-    width:min(980px,100%);
-    background:#fff; border-radius:20px; padding:28px;
+    width:min(980px,100%); background:#fff; border-radius:20px; padding:28px;
     box-shadow:0 18px 60px rgba(0,0,0,.25);
   }
   h1{font-size:clamp(1.6rem,2.5vw,2.4rem); text-align:center; color:#333; font-weight:800; letter-spacing:.2px}
   .meta{margin-top:6px; text-align:center; color:#666; font-weight:500}
+  .status{margin-top:8px; text-align:center; color:#888; font-size:.88rem; height:18px; display:none;}
   .viewer{
     position:relative; margin-top:18px; border-radius:16px; overflow:hidden;
     background:#f5f5f7; box-shadow:0 10px 28px rgba(0,0,0,.08);
-    /* responsive height: smaller on phone, taller on desktop */
     height:clamp(260px, 70vh, 78vh);
     display:flex; align-items:center; justify-content:center;
   }
   img#quoteImage{
-    max-width:100%;
-    max-height:100%;
-    width:auto; height:auto;
-    object-fit:contain; /* auto-adjust to image size */
-    display:none; border-radius:14px;
-    transition:opacity .2s ease;
+    max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain;
+    display:none; border-radius:14px; transition:opacity .2s ease;
   }
   img#quoteImage.show{ display:block; opacity:1 }
   .placeholder{ color:#9aa; text-align:center; padding:22px; }
@@ -50,28 +43,31 @@
   button:hover:not(:disabled){ transform:translateY(-1.5px); }
   .loading{
     position:absolute; inset:0; background:rgba(0,0,0,.45);
-    display:none; align-items:center; justify-content:center; z-index:5;
+    display:flex; align-items:center; justify-content:center; z-index:5;
+    flex-direction:column; gap:12px;
   }
-  .loading.on{ display:flex }
   .spinner{
     width:52px; height:52px; border-radius:50%;
     border:5px solid rgba(255,255,255,.35);
     border-top-color:#fff; animation:spin 1s linear infinite;
   }
+  .loading-text{color:#fff; font-weight:600; font-size:.95rem}
   @keyframes spin{ to{ transform:rotate(360deg) } }
   .footer{ margin-top:16px; padding-top:14px; border-top:1px solid #eee; color:#666; text-align:center; font-size:.92rem }
-  @media (max-width:600px){
-    .card{ padding:18px }
-  }
+  @media (max-width:600px){ .card{ padding:18px } }
 </style>
 </head>
 <body>
   <main class="card">
     <h1>✨ Get A Quote</h1>
     <p class="meta">Total Quotes: <strong id="totalCount">0</strong></p>
+    <p class="status" id="statusText"></p>
 
     <section class="viewer" id="viewer">
-      <div class="loading" id="loading"><div class="spinner"></div></div>
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">0% complete…</div>
+      </div>
       <div class="placeholder" id="placeholder">Click “Get A Quote” to see an inspiring quote! 🎯</div>
       <img id="quoteImage" alt="Quote" decoding="async" referrerpolicy="no-referrer">
     </section>
@@ -84,141 +80,79 @@
   </main>
 
 <script>
-  // -------- Config --------
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYKfmVEMzFD5LDm0izPYcoI5mXyzKejVX6OCpuSOkPHTaPaL7vMl4E9yYhKU3Qp4j3PQ/exec";
-  const CACHE_KEY = "quotes_list_v2";
-  const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+  const PAGE_SIZE = 1500;
 
-  // -------- DOM --------
   const totalCountEl = document.getElementById("totalCount");
+  const statusText = document.getElementById("statusText");
   const placeholder = document.getElementById("placeholder");
   const imgEl = document.getElementById("quoteImage");
   const randomBtn = document.getElementById("randomBtn");
   const loading = document.getElementById("loading");
+  const loadingText = document.getElementById("loadingText");
 
   let IMAGES = [];
-  let currentIndex = -1;
+  let totalImagesCount = 0;
 
-  function setLoading(on){ loading.classList.toggle("on", !!on); }
-  function saveCache(data){ localStorage.setItem(CACHE_KEY, JSON.stringify({t:Date.now(), data})); }
-  function loadCache(){
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if(!raw) return null;
-      const {t, data} = JSON.parse(raw);
-      if(Date.now() - t > CACHE_TTL) return null;
-      return data;
-    } catch { return null; }
+  function updateProgressText(loaded, total){
+    let percent = total > 0 ? Math.floor((loaded/total)*100) : 0;
+    loadingText.textContent = `${percent}% complete…`;
+    statusText.style.display = "block";
+    statusText.textContent = `${percent}% complete…`;
   }
 
-  async function fetchList(){
-    const cached = loadCache();
-    if (cached?.length) return cached;
-    // Abort after 10s just in case
-    const ctl = new AbortController();
-    const to = setTimeout(()=>ctl.abort(), 10000);
-    try{
-      const res = await fetch(APPS_SCRIPT_URL, { signal: ctl.signal, cache: "no-store" });
-      clearTimeout(to);
-      if(!res.ok) throw new Error("Network error");
+  async function loadAllQuotes(){
+    let page = 1, hasMore = true;
+    IMAGES = [];
+
+    while(hasMore){
+      const res = await fetch(`${APPS_SCRIPT_URL}?page=${page}&pageSize=${PAGE_SIZE}`);
       const json = await res.json();
-      // Minimal sanitize: only keep items with id + url
-      const list = (json || []).filter(x => x && x.id && x.url);
-      if(list.length) saveCache(list);
-      return list;
-    } catch(e){
-      clearTimeout(to);
-      return cached || []; // last known good, if any
+      if(!json.success) throw new Error(json.message);
+
+      if(json.totalCount) totalImagesCount = json.totalCount;
+      totalCountEl.textContent = totalImagesCount;
+
+      IMAGES.push(...json.data.map(x=>({id:x.id,name:x.name||"Quote"})));
+      updateProgressText(IMAGES.length, totalImagesCount);
+
+      hasMore = json.hasMore;
+      page++;
     }
-  }
 
-  // Build fallback chain from a file id
-  function makeFallbacks(id){
-    return [
-      `https://lh3.googleusercontent.com/d/${id}`,                       // primary (fastest, least 403)
-      `https://drive.google.com/uc?export=view&id=${id}`,               // fallback 1
-      `https://drive.google.com/thumbnail?sz=w2000&id=${id}`            // fallback 2 (large thumb)
-    ];
-  }
+    // Done ✅
+    loading.style.display = "none";
+    randomBtn.disabled = false;
 
-  // Try sources in order until one loads
-  function loadWithFallbacks(id, onDone){
-    const sources = makeFallbacks(id);
-    let idx = 0;
-
-    const tryNext = () => {
-      if (idx >= sources.length) {
-        onDone(new Error("All fallbacks failed"));
-        return;
-      }
-      const src = sources[idx++];
-      const probe = new Image();
-      // Block sending referrer; avoids some Drive anti-hotlinking edge cases
-      probe.referrerPolicy = "no-referrer";
-      probe.decoding = "async";
-
-      probe.onload = () => onDone(null, src, probe);
-      probe.onerror = () => tryNext();
-      probe.src = src + (src.includes("?") ? "&" : "?") + "v=" + Date.now(); // bust caches on errors
-    };
-
-    tryNext();
+    // Hide status line cleanly
+    setTimeout(() => {
+      statusText.textContent = "";
+      statusText.style.display = "none";
+    }, 800);
   }
 
   function showRandom(){
-    if (!IMAGES.length) return;
+    const i = Math.floor(Math.random() * IMAGES.length);
+    const {id,name} = IMAGES[i];
 
-    // new index different from current (if possible)
-    let i;
-    do { i = Math.floor(Math.random() * IMAGES.length); } while (IMAGES.length > 1 && i === currentIndex);
-    currentIndex = i;
-
-    const item = IMAGES[i];
-    const id = item.id;
-
-    placeholder.style.display = "none";
+    placeholder.style.display="none";
     imgEl.classList.remove("show");
-    setLoading(true);
 
-    loadWithFallbacks(id, (err, bestSrc, probe) => {
-      if (err) {
-        setLoading(false);
-        placeholder.textContent = "Could not load. Ensure Drive folder is public.";
-        placeholder.style.display = "block";
-        return;
-      }
-      // Set intrinsic-friendly sizing (auto-adjust)
-      imgEl.style.maxWidth = "100%";
-      imgEl.style.maxHeight = "100%";
-      imgEl.width = probe.naturalWidth;
-      imgEl.height = probe.naturalHeight;
+    loading.style.display="flex";
+    loadingText.textContent="Loading quote…";
 
-      imgEl.src = bestSrc;
-      imgEl.alt = item.name || "Quote";
-      imgEl.onload = () => {
-        setLoading(false);
-        imgEl.classList.add("show");
-      };
-    });
+    const url = `https://lh3.googleusercontent.com/d/${id}?v=${Date.now()}`;
+    imgEl.src = url;
+    imgEl.alt = name;
+    imgEl.onload = () => { loading.style.display="none"; imgEl.classList.add("show"); };
+    imgEl.onerror = () => {
+      loading.style.display="none";
+      placeholder.textContent="Could not load quote";
+      placeholder.style.display="block";
+    };
   }
 
-  async function init(){
-    setLoading(true);
-    IMAGES = await fetchList();
-    totalCountEl.textContent = IMAGES.length;
-    randomBtn.disabled = IMAGES.length === 0;
-    setLoading(false);
-
-    // Optional: preload a handful to make first click instant
-    IMAGES.slice(0, 6).forEach(i => {
-      const p = new Image();
-      p.referrerPolicy = "no-referrer";
-      p.src = `https://lh3.googleusercontent.com/d/${i.id}`;
-    });
-  }
-
-  // Events
-  window.addEventListener("load", init);
+  window.addEventListener("load", loadAllQuotes);
   randomBtn.addEventListener("click", showRandom);
 </script>
 </body>
